@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../index";
+import { config } from "../src/config/env";
 
 export function authMiddleware(
   req: Request,
@@ -13,7 +13,7 @@ export function authMiddleware(
   }
   const token = authHeader.slice(7);
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, config.JWT_SECRET);
     (req as any).user = payload;
     next();
   } catch {
