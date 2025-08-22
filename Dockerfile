@@ -18,4 +18,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # 默认启动命令：直接用 bun 运行 TypeScript 入口文件
-CMD ["bun", "run", "index.ts"]
+CMD ["bun", "run", "app.ts"]

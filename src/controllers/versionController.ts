@@ -116,4 +116,31 @@ export class VersionController {
       return res.status(500).json({ error: "删除失败", detail: errorMsg });
     }
   }
+
+  // 根据版本号查询版本信息 (无需认证)
+  static getVersionByNumber(req: Request, res: Response) {
+    const { version } = req.params;
+    
+    if (!version) {
+      return res.status(400).json({ error: "缺少版本号参数" });
+    }
+
+    try {
+      const versionInfo = db
+        .prepare("SELECT * FROM versions WHERE version = ?")
+        .get(version) as VersionRow | undefined;
+
+      if (!versionInfo) {
+        return res.status(404).json({ error: "未找到该版本信息" });
+      }
+
+      return res.json({
+        message: "查询版本信息成功",
+        version: versionInfo
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ error: "查询版本信息失败", detail: errorMsg });
+    }
+  }
 }
