@@ -154,6 +154,34 @@ Authorization: Bearer <token>
 
 ---
 
+## POST /upload
+通过 X-Filename 头上传文件，需要认证。
+
+Headers
+```
+Authorization: Bearer <token>
+X-Filename: <filename>  // 必需，要保存的文件名
+Content-Type: */*       // 可选，支持任意类型
+```
+请求体：原始文件数据（二进制、文本、base64等）
+
+成功响应 201
+```json
+{
+  "message": "文件上传成功",
+  "originalFilename": "example.db",
+  "savedFilename": "2024-01-01T12-00-00-000Z_example.db",
+  "size": 1024,
+  "path": "/data/backups/1/2024-01-01T12-00-00-000Z_example.db",
+  "uploadTime": "2024-01-01T12:00:00.000Z"
+}
+```
+错误
+- 400：缺少 X-Filename 请求头或文件数据
+- 500：文件写入失败
+
+---
+
 ## POST /backup
 上传客户端（前端）生成的 SQLite 备份（base64 编码），需要认证。
 
@@ -182,12 +210,55 @@ Content-Type: application/json
 
 示例：使用 PowerShell 调用（含 token）
 ```powershell
+# 注册登录获取 token
 $body = @{ username = 'alice'; password = 'pass' } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://localhost:8080/register -Body $body -ContentType 'application/json'
+$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/register -Body $body -ContentType 'application/json'
+$token = $response.token
 
-# 假设取得 $token
-$backup = @{ userId = 1; filename = 'client.db'; file = '<BASE64>' } | ConvertTo-Json
+# 上传文件（新接口 - 通过 X-Filename 头）
+$fileContent = Get-Content -Path "example.db" -Raw -Encoding Byte
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/upload `
+  -Body $fileContent `
+  -Headers @{ 
+    Authorization = "Bearer $token"
+    "X-Filename" = "example.db"
+  }
+
+# 备份文件（原接口 - base64编码）
+$fileBytes = [System.IO.File]::ReadAllBytes("client.db")
+$base64 = [System.Convert]::ToBase64String($fileBytes)
+$backup = @{ userId = 1; filename = 'client.db'; file = $base64 } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/backup -Body $backup -ContentType 'application/json' -Headers @{ Authorization = "Bearer $token" }
+```
+
+JavaScript/前端示例
+```javascript
+// 上传文件（新接口）
+async function uploadFile(file, token) {
+  const response = await fetch('http://localhost:8080/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'X-Filename': file.name
+    },
+    body: file // File 对象或 ArrayBuffer
+  });
+  return await response.json();
+}
+
+// 使用示例
+const fileInput = document.querySelector('input[type="file"]');
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    try {
+      const result = await uploadFile(file, yourToken);
+      console.log('上传成功:', result);
+    } catch (error) {
+      console.error('上传失败:', error);
+    }
+  }
+});
 ```
 
 运行与依赖

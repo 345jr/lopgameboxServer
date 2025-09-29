@@ -19,7 +19,7 @@ app.use(cors({
     // true
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Filename'],
   credentials: true // 允许携带凭证（如果前端需要发送 cookies 或 authorization header）
 }));
 
