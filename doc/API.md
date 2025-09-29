@@ -3,7 +3,9 @@
 说明：本项目在 Bun 运行时（使用 `bun:sqlite`）下运行，使用 JWT 做认证。以下接口基于当前 `index.ts` 实现整理。
 
 通用说明
-- Base URL: http://localhost:8080
+- Base URL: 
+  - 生产环境: https://lopbox.lopop.top
+  - 开发环境: http://localhost:8080
 - Content-Type: application/json
 - 认证：需要登录的接口通过 `Authorization: Bearer <token>` 头传输 JWT
 - 数据库：SQLite 文件位于 `./data/server.db`，版本信息表为 `versions`。
@@ -210,14 +212,18 @@ Content-Type: application/json
 
 示例：使用 PowerShell 调用（含 token）
 ```powershell
+# 设置基础URL（根据环境选择）
+$baseUrl = "https://lopbox.lopop.top"  # 生产环境
+# $baseUrl = "http://localhost:8080"   # 开发环境
+
 # 注册登录获取 token
 $body = @{ username = 'alice'; password = 'pass' } | ConvertTo-Json
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/register -Body $body -ContentType 'application/json'
+$response = Invoke-RestMethod -Method Post -Uri "$baseUrl/register" -Body $body -ContentType 'application/json'
 $token = $response.token
 
 # 上传文件（新接口 - 通过 X-Filename 头）
 $fileContent = Get-Content -Path "example.db" -Raw -Encoding Byte
-Invoke-RestMethod -Method Post -Uri http://localhost:8080/upload `
+Invoke-RestMethod -Method Post -Uri "$baseUrl/upload" `
   -Body $fileContent `
   -Headers @{ 
     Authorization = "Bearer $token"
@@ -228,14 +234,19 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8080/upload `
 $fileBytes = [System.IO.File]::ReadAllBytes("client.db")
 $base64 = [System.Convert]::ToBase64String($fileBytes)
 $backup = @{ userId = 1; filename = 'client.db'; file = $base64 } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://localhost:8080/backup -Body $backup -ContentType 'application/json' -Headers @{ Authorization = "Bearer $token" }
+Invoke-RestMethod -Method Post -Uri "$baseUrl/backup" -Body $backup -ContentType 'application/json' -Headers @{ Authorization = "Bearer $token" }
 ```
 
 JavaScript/前端示例
 ```javascript
+// 配置基础URL
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://lopbox.lopop.top' 
+  : 'http://localhost:8080';
+
 // 上传文件（新接口）
 async function uploadFile(file, token) {
-  const response = await fetch('http://localhost:8080/upload', {
+  const response = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

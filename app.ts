@@ -9,6 +9,10 @@ const app = express();
 // CORS 配置
 app.use(cors({
   origin: [
+    // 生产环境域名
+    'https://lopbox.lopop.top',
+    'https://www.lopbox.lopop.top',
+    // 开发环境本地地址
     'http://localhost:3000',    // React 默认端口
     'http://localhost:5173',    // Vite 默认端口
     'http://localhost:8080',    // Vue CLI 默认端口
