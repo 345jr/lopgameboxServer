@@ -14,7 +14,5 @@ const uploadMiddleware = express.raw({
 // 文件上传接口 (需要认证)
 backupRoutes.post("/upload", uploadMiddleware, authMiddleware, BackupController.uploadFile);
 
-// 云备份接口 (需要认证)
-// backupRoutes.post("/backup", authMiddleware, BackupController.cloudBackup);
 
 export default backupRoutes;
