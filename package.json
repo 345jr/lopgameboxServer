@@ -3,6 +3,9 @@
   "module": "app.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun run app.ts"
+  },
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "@types/cors": "^2.8.19",
@@ -12,12 +15,25 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@browserless.io/browserless": "^2.37.0",
     "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",
+    "browserless": "^10.9.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "html-get": "^2.21.11",
+    "jsonwebtoken": "^9.0.2",
+    "metascraper": "^5.49.4",
+    "metascraper-author": "^5.49.2",
+    "metascraper-date": "^5.49.2",
+    "metascraper-description": "^5.49.2",
+    "metascraper-image": "^5.49.2",
+    "metascraper-logo": "^5.49.2",
+    "metascraper-publisher": "^5.49.2",
+    "metascraper-title": "^5.49.2",
+    "metascraper-url": "^5.49.2",
+    "puppeteer": "^24.23.0"
   }
 }
