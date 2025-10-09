@@ -38,7 +38,7 @@ class ScrapeService {
    */
   private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
-      this.browser = await puppeteer.launch({
+      const launchOptions: any = {
         headless: true,
         args: [
           '--no-sandbox',
@@ -47,9 +47,19 @@ class ScrapeService {
           '--disable-accelerated-2d-canvas',
           '--disable-gpu',
           '--disable-web-security',
-          '--disable-features=IsolateOrigins,site-per-process'
+          '--disable-features=IsolateOrigins,site-per-process',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding'
         ]
-      });
+      };
+
+      // 在 Docker 容器中使用系统 Chromium
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+
+      this.browser = await puppeteer.launch(launchOptions);
     }
     return this.browser;
   }
@@ -118,8 +128,29 @@ class ScrapeService {
       // 设置视口大小，模拟真实浏览器
       await page.setViewport({ width: 1920, height: 1080 });
       
-      // 设置User-Agent，避免被网站识别为爬虫
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      // 设置User-Agent和元数据，避免被网站识别为爬虫
+      await page.setUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        {
+          brands: [
+            { brand: 'Google Chrome', version: '131' },
+            { brand: 'Chromium', version: '131' },
+            { brand: 'Not_A Brand', version: '24' }
+          ],
+          fullVersionList: [
+            { brand: 'Google Chrome', version: '131.0.6778.86' },
+            { brand: 'Chromium', version: '131.0.6778.86' },
+            { brand: 'Not_A Brand', version: '24.0.0.0' }
+          ],
+          platform: 'Windows',
+          platformVersion: '10.0.0',
+          architecture: 'x86',
+          model: '',
+          mobile: false,
+          bitness: '64',
+          wow64: false
+        }
+      );
       
       // 设置额外的请求头
       await page.setExtraHTTPHeaders({
