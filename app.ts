@@ -20,11 +20,10 @@ app.use(cors({
     'http://127.0.0.1:5173',    // 本地 IP 形式
     'http://127.0.0.1:3000',
     // 如果需要允许所有来源，可以设置为 true，但不安全
-    // true
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Filename'],
-  credentials: true // 允许携带凭证（如果前端需要发送 cookies 或 authorization header）
+  // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  // allowedHeaders: ['','Content-Type', 'Authorization', 'X-Filename'],
+  // credentials: true // 允许携带凭证（如果前端需要发送 cookies 或 authorization header）
 }));
 
 // 其他中间件

@@ -10,7 +10,7 @@ class ScrapeService {
   private cache: Map<string, CacheEntry> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
   /**
-   * 静态HTML提取元数据（无需JS执行）
+   * 静态HTML提取元数据
    */
   private async fetchStaticMetadata(url: string): Promise<Partial<Metadata> | null> {
     try {
