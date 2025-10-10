@@ -22,6 +22,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "puppeteer": "^24.23.0"
+    "puppeteer": "^24.23.0",
+    "winston": "^3.18.3"
   }
 }
