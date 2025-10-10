@@ -1,13 +1,85 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import * as cheerio from 'cheerio';
 import logger from '../utils/logger';
 import type { Metadata } from '../types/metadata';
 import type { CacheEntry } from '../types/metadata';
+  
 
 class ScrapeService {
   private browser: Browser | null = null;
   private cache: Map<string, CacheEntry> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
+  /**
+   * 静态HTML提取元数据（无需JS执行）
+   */
+  private async fetchStaticMetadata(url: string): Promise<Partial<Metadata> | null> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      const $ = cheerio.load(html);
+      const getMeta = (name: string, property?: string) =>
+        $(`meta[name='${name}']`).attr('content') ||
+        (property ? $(`meta[property='${property}']`).attr('content') : '');
 
+      const title = getMeta('', 'og:title') || getMeta('twitter:title') || $('title').text();
+      const description = getMeta('', 'og:description') || getMeta('twitter:description') || getMeta('description');
+      const keywords = getMeta('keywords');
+      const favicon = $('link[rel="icon"]').attr('href') || '/favicon.ico';
+      const ogTitle = getMeta('', 'og:title');
+      const ogDescription = getMeta('', 'og:description');
+      const ogImage = getMeta('', 'og:image');
+      const ogType = getMeta('', 'og:type');
+      const ogUrl = getMeta('', 'og:url');
+      const twitterCard = getMeta('twitter:card');
+      const twitterTitle = getMeta('twitter:title');
+      const twitterDescription = getMeta('twitter:description');
+      const twitterImage = getMeta('twitter:image');
+      const author = getMeta('author');
+      const publisher = getMeta('publisher');
+      const charset = $('meta[charset]').attr('charset') || '';
+      const language = $('html').attr('lang') || '';
+      const robots = getMeta('robots');
+
+      // 关键字段齐全则返回
+      if (title || description) {
+        return {
+          title,
+          description,
+          keywords,
+          url,
+          favicon,
+          ogTitle,
+          ogDescription,
+          ogImage,
+          ogType,
+          ogUrl,
+          twitterCard,
+          twitterTitle,
+          twitterDescription,
+          twitterImage,
+          author,
+          publisher,
+          charset,
+          language,
+          robots
+        };
+      }
+      return null;
+    } catch (err) {
+      logger.warn(`静态HTML元数据提取失败: ${url}，错误: ${err instanceof Error ? err.message : err}`);
+      return null;
+    }
+  }
   /**
    * 初始化浏览器实例
    */
@@ -91,7 +163,40 @@ class ScrapeService {
       }
     }
 
-    logger.info(`开始抓取网页元数据: ${url}`);
+    // 优先静态HTML提取
+    const staticMeta = await this.fetchStaticMetadata(url);
+    if (staticMeta && staticMeta.title) {
+      logger.info(`静态HTML元数据提取成功: ${url}`);
+      // 补齐部分字段为默认值
+      const metadata: Metadata = {
+        title: staticMeta.title || '',
+        description: staticMeta.description || '',
+        keywords: staticMeta.keywords || '',
+        url: staticMeta.url || url,
+        favicon: staticMeta.favicon || '',
+        ogTitle: staticMeta.ogTitle || '',
+        ogDescription: staticMeta.ogDescription || '',
+        ogImage: staticMeta.ogImage || '',
+        ogType: staticMeta.ogType || '',
+        ogUrl: staticMeta.ogUrl || '',
+        twitterCard: staticMeta.twitterCard || '',
+        twitterTitle: staticMeta.twitterTitle || '',
+        twitterDescription: staticMeta.twitterDescription || '',
+        twitterImage: staticMeta.twitterImage || '',
+        author: staticMeta.author || '',
+        publisher: staticMeta.publisher || '',
+        charset: staticMeta.charset || '',
+        language: staticMeta.language || '',
+        robots: staticMeta.robots || ''
+      };
+      if (useCache) {
+        this.setCachedMetadata(url, metadata);
+        this.cleanupCache();
+      }
+      return metadata;
+    }
+
+    logger.info(`静态HTML元数据提取失败，尝试Puppeteer动态抓取: ${url}`);
     let page: Page | null = null;
 
     try {
