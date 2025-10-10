@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { db } from "../services/database";
-import type { UserRow } from "../../types/user";
+import type { UserRow } from "../types/user";
 
 export class UserController {
   // 获取用户列表 (仅管理员)

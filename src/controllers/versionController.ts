@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { db } from "../services/database";
-import type { VersionRow } from "../../types/version";
+import type { VersionRow } from "../types/version";
 
 export class VersionController {
   // 检查更新

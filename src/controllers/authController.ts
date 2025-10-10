@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../services/database";
 import { config } from "../config/env";
-import type { UserRow } from "../../types/user";
+import type { UserRow } from "../types/user";
 
 export class AuthController {
   // 注册

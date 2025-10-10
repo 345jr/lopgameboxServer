@@ -1,33 +1,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../utils/logger';
-
-interface Metadata {
-  title: string;
-  description: string;
-  keywords: string;
-  url: string;
-  favicon: string;
-  ogTitle: string;
-  ogDescription: string;
-  ogImage: string;
-  ogType: string;
-  ogUrl: string;
-  twitterCard: string;
-  twitterTitle: string;
-  twitterDescription: string;
-  twitterImage: string;
-  author: string;
-  publisher: string;
-  charset: string;
-  language: string;
-  robots: string;
-}
-
-// 简单的内存缓存
-interface CacheEntry {
-  data: Metadata;
-  timestamp: number;
-}
+import type { Metadata } from '../types/metadata';
+import type { CacheEntry } from '../types/metadata';
 
 class ScrapeService {
   private browser: Browser | null = null;
