@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import { config } from "../config/env";
+import logger from "../utils/logger";
 
 export class BackupController {
   // 文件上传接口
@@ -53,18 +54,21 @@ export class BackupController {
 
       fs.writeFileSync(filePath, fileBuffer);
 
+      // 上传成功日志
+      logger.info(`备份上传成功: uid=${uid}, originalFilename="${filename}", savedFilename="${finalFilename}", size=${fileBuffer.length}, path="${filePath.replace(process.cwd(), '')}"`);
+
       return res.status(201).json({
         message: "文件上传成功",
         originalFilename: filename,
         savedFilename: finalFilename,
         size: fileBuffer.length,
-        path: filePath.replace(process.cwd(), ""), // 返回相对路径
+        path: filePath.replace(process.cwd(), ""),
         uploadTime: new Date().toISOString()
       });
 
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error('文件上传失败:', errorMsg);
+      logger.error(`文件上传失败: ${errorMsg}`);
       return res.status(500).json({ 
         error: "文件上传失败", 
         detail: errorMsg 
