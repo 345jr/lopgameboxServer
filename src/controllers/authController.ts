@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { db } from "../services/database";
 import { config } from "../config/env";
 import type { UserRow } from "../types/user";
+import logger from "../utils/logger";
 
 export class AuthController {
   // 注册
@@ -11,6 +12,7 @@ export class AuthController {
     const { username, password, adminSecretKey } = req.body;
     
     if (!username || !password) {
+      logger.warn(`注册失败: 用户名或密码为空`);
       return res.status(400).json({ error: "用户名和密码不能为空" });
     }
 
@@ -21,6 +23,7 @@ export class AuthController {
         .get(username) as UserRow | undefined;
       
       if (userExists) {
+        logger.warn(`注册失败: 用户名 "${username}" 已存在`);
         return res.status(409).json({ error: "用户名已存在" });
       }
 
@@ -30,6 +33,7 @@ export class AuthController {
         if (adminSecretKey === config.ADMIN_SECRET_KEY) {
           role = 'admin';
         } else {
+          logger.warn(`注册失败: 用户 "${username}" 提供的管理员密钥不正确`);
           return res.status(400).json({ error: "管理员注册密钥不正确" });
         }
       }
@@ -45,7 +49,7 @@ export class AuthController {
         role
       );
 
-      // 自动登录，生成 token
+      // 自动登录,生成 token
       const user = db
         .prepare("SELECT * FROM users WHERE username = ?")
         .get(username) as UserRow;
@@ -56,13 +60,16 @@ export class AuthController {
         { expiresIn: config.JWT_EXPIRES_IN as string } as jwt.SignOptions
       );
 
+      logger.info(`用户注册成功: 用户名="${username}", 角色="${role}", ID=${user.id}`);
+
       return res.json({
-        message: `注册成功，您的角色是: ${role === 'admin' ? '管理员' : '普通用户'}`,
+        message: `注册成功,您的角色是: ${role === 'admin' ? '管理员' : '普通用户'}`,
         token,
         user: { id: user.id, username: user.username, role: user.role },
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`注册失败: 用户名="${username}", 错误: ${errorMsg}`);
       return res.status(500).json({ error: "注册失败", detail: errorMsg });
     }
   }
@@ -72,6 +79,7 @@ export class AuthController {
     const { username, password } = req.body;
     
     if (!username || !password) {
+      logger.warn(`登录失败: 用户名或密码为空`);
       return res.status(400).json({ error: "用户名和密码不能为空" });
     }
 
@@ -81,21 +89,25 @@ export class AuthController {
         .get(username) as UserRow | undefined;
 
       if (!user) {
+        logger.warn(`登录失败: 用户名 "${username}" 不存在`);
         return res.status(401).json({ error: "用户名或密码错误" });
       }
 
       // 验证密码
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
+        logger.warn(`登录失败: 用户 "${username}" 密码错误`);
         return res.status(401).json({ error: "用户名或密码错误" });
       }
 
-      // 登录成功，生成 token
+      // 登录成功,生成 token
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
         config.JWT_SECRET as string,
         { expiresIn: config.JWT_EXPIRES_IN as string } as jwt.SignOptions
       );
+
+      logger.info(`用户登录成功: 用户名="${username}", 角色="${user.role}", ID=${user.id}`);
 
       return res.json({
         message: "登录成功",
@@ -104,6 +116,7 @@ export class AuthController {
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`登录异常: 用户名="${username}", 错误: ${errorMsg}`);
       return res.status(500).json({ error: "登录失败", detail: errorMsg });
     }
   }
