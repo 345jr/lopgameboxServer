@@ -1,15 +1,2 @@
 # lopgameboxserver
-
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.20. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+一个由bun+expres+sqlite组成的建议后端
