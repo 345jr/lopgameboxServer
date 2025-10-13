@@ -24,6 +24,7 @@ class DatabaseService {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       role TEXT DEFAULT 'user' CHECK(role IN ('user', 'admin')),
+      status TEXT DEFAULT 'active' CHECK(status IN ('active', 'banned')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     // 版本信息表

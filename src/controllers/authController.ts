@@ -65,7 +65,7 @@ export class AuthController {
       return res.json({
         message: `注册成功,您的角色是: ${role === 'admin' ? '管理员' : '普通用户'}`,
         token,
-        user: { id: user.id, username: user.username, role: user.role },
+        user: { id: user.id, username: user.username, role: user.role, status: user.status },
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -100,6 +100,12 @@ export class AuthController {
         return res.status(401).json({ error: "用户名或密码错误" });
       }
 
+      // 检查用户是否被封禁
+      if (user.status === 'banned') {
+        logger.warn(`登录失败: 用户 "${username}" 已被封禁`);
+        return res.status(403).json({ error: "账号已被封禁,无法登录" });
+      }
+
       // 登录成功,生成 token
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
@@ -112,7 +118,7 @@ export class AuthController {
       return res.json({
         message: "登录成功",
         token,
-        user: { id: user.id, username: user.username, role: user.role },
+        user: { id: user.id, username: user.username, role: user.role, status: user.status },
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);

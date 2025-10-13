@@ -16,14 +16,6 @@ lopgameboxServer/
 │   ├── run.sql                # 数据库初始化脚本
 │   └── backups/               # 数据库备份目录
 │
-├── doc/                        # 文档目录
-│   ├── API.md                 # API 接口文档
-│   ├── ROLE_SYSTEM.md         # 角色系统说明
-│   ├── REFACTOR_README.md     # 重构说明
-│   ├── SCRAPE_API.md          # 爬虫 API 文档
-│   ├── SCRAPE_EXAMPLE.md      # 爬虫使用示例
-│   └── SCRAPE_OPTIMIZATION.md # 爬虫优化说明
-│
 ├── MiddleWare/                 # 中间件目录
 │   ├── authMiddleware.ts      # 认证中间件
 │   └── adminMiddleware.ts     # 管理员中间件
@@ -51,7 +43,6 @@ lopgameboxServer/
 │   │
 │   └── services/              # 服务层目录
 │       ├── database.ts        # 数据库服务
-│       ├── scraper.ts         # 爬虫服务（旧）
 │       └── scrapeService.ts   # 爬虫服务（新，Puppeteer）
 │
 └── types/                      # 类型定义目录

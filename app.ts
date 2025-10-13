@@ -3,6 +3,8 @@ import cors from "cors";
 import { config } from "./src/config/env";
 import routes from "./src/routes";
 import "./src/services/database"; // 初始化数据库
+import logger from "./src/utils/logger";
+
 
 const app = express();
 
@@ -35,4 +37,5 @@ app.use("/", routes);
 // 启动服务器
 app.listen(config.port, () => {
   console.log(`Server is running on port ${config.port}...`);
+  logger.info(`服务器启动成功: ${config.port}`);
 });
