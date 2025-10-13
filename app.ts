@@ -7,6 +7,7 @@ import logger from "./src/utils/logger";
 
 
 const app = express();
+logger.info('正在启动服务器...');
 
 // CORS 配置
 app.use(cors({
@@ -36,6 +37,5 @@ app.use("/", routes);
 
 // 启动服务器
 app.listen(config.port, () => {
-  console.log(`Server is running on port ${config.port}...`);
   logger.info(`服务器启动成功: ${config.port}`);
 });
