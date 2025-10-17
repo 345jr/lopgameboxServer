@@ -34,6 +34,22 @@ class DatabaseService {
       release_date DATETIME DEFAULT CURRENT_TIMESTAMP,
       notes TEXT
     )`);
+    // 图片信息表
+    this.db.exec(`CREATE TABLE IF NOT EXISTS images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      file_name TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      mime_type TEXT NOT NULL,
+      tag TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    // 创建索引以提高查询性能
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id)`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_images_tag ON images(tag)`);
   }
 
   public getDatabase(): Database {

@@ -1,7 +1,39 @@
-import express from "express";
+import multer from "multer";
 
-// 文件上传中间件：处理原始数据
-export const uploadMiddleware = express.raw({ 
-  type: '*/*', 
-  limit: '50mb' // 设置文件大小限制
+// 使用内存存储，文件将被存储在 Buffer 中
+const storage = multer.memoryStorage();
+
+// 允许的图片类型
+const allowedMimeTypes = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml'
+];
+
+// 配置 multer
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+  fileFilter: (req: any, file: any, cb: any) => {
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
 });
+
+// 单文件上传中间件
+export const uploadSingleImage = upload.single('image');
+
+// 多文件上传中间件 (最多 10 个)
+export const uploadMultipleImages = upload.array('images', 10);
+
+// 原有的原始数据上传中间件
+export const uploadRawData = multer().none();
+

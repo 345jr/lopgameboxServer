@@ -5,6 +5,8 @@ import backupRoutes from "./backup";
 import generalRoutes from "./general";
 import userRoutes from "./user";
 import scrapeRoutes from "./scrape";
+import uploadRoutes from "./upload";
+import imageRoutes from "./image";
 
 const routes = Router();
 
@@ -15,5 +17,7 @@ routes.use("/", backupRoutes);    // 备份相关路由
 routes.use("/", generalRoutes);   // 通用路由
 routes.use("/", userRoutes);      // 用户管理路由
 routes.use("/", scrapeRoutes);    // 网页抓取路由
+routes.use("/", uploadRoutes);    // 文件上传路由
+routes.use("/", imageRoutes);     // 图片管理路由
 
 export default routes;
