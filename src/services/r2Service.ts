@@ -1,26 +1,30 @@
-import { AwsClient } from "aws4fetch";
+import { S3Client } from "bun";
 import { config } from "../config/env";
 import logger from "../utils/logger";
 
 class R2Service {
-  private client: AwsClient;
-  private r2Url: string;
-  private bucketName: string;
-  private publicUrl: string;
+  private client: S3Client | null;
+  // private bucketName: string;
+  // private publicUrl: string;
 
   constructor() {
     // 检查必需的环境变量
     if (!config.R2_ACCOUNT_ID || !config.R2_ACCESS_KEY_ID || !config.R2_SECRET_ACCESS_KEY || !config.R2_BUCKET_NAME) {
       logger.warn("R2 配置不完整，文件上传功能可能无法正常工作");
+      this.client = null;
+      // this.bucketName = "";
+      // this.publicUrl = "";
+      return;
     }
 
-    this.bucketName = config.R2_BUCKET_NAME;
-    this.r2Url = `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-    this.publicUrl = config.R2_PUBLIC_URL || this.r2Url;
+    // this.bucketName = config.R2_BUCKET_NAME;
+    // this.publicUrl = config.R2_PUBLIC_URL || `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
-    this.client = new AwsClient({
+    this.client = new S3Client({
       accessKeyId: config.R2_ACCESS_KEY_ID,
       secretAccessKey: config.R2_SECRET_ACCESS_KEY,
+      bucket: config.R2_BUCKET_NAME,
+      endpoint: `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     });
   }
 
@@ -33,29 +37,19 @@ class R2Service {
    */
   async uploadFile(file: Buffer, fileName: string, contentType: string): Promise<string> {
     try {
-      const url = `${this.r2Url}/${this.bucketName}/${fileName}`;
-
-      const response = await this.client.fetch(url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": contentType,
-          "Content-Length": String(file.length),
-        },
-        body: file as any,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`上传失败: ${response.status} ${response.statusText} - ${errorText}`);
+      if (!this.client) {
+        throw new Error("R2 客户端未初始化");
       }
+
+      // 使用 Bun 原生 S3 客户端上传
+      await this.client.write(fileName, file, {
+        type: contentType,
+      });
 
       logger.info(`文件上传成功: ${fileName}`);
       
       // 返回公开访问 URL
-      if (config.R2_PUBLIC_URL) {
-        return `${config.R2_PUBLIC_URL}/${fileName}`;
-      }
-      return `${this.r2Url}/${this.bucketName}/${fileName}`;
+      return `${config.R2_PUBLIC_URL}/${fileName}`;
     } catch (error) {
       logger.error(`文件上传失败: ${error}`);
       throw error;
@@ -68,17 +62,11 @@ class R2Service {
    */
   async deleteFile(fileName: string): Promise<void> {
     try {
-      const url = `${this.r2Url}/${this.bucketName}/${fileName}`;
-
-      const response = await this.client.fetch(url, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`删除失败: ${response.status} ${response.statusText} - ${errorText}`);
+      if (!this.client) {
+        throw new Error("R2 客户端未初始化");
       }
 
+      await this.client.delete(fileName);
       logger.info(`文件删除成功: ${fileName}`);
     } catch (error) {
       logger.error(`文件删除失败: ${error}`);
@@ -93,13 +81,11 @@ class R2Service {
    */
   async fileExists(fileName: string): Promise<boolean> {
     try {
-      const url = `${this.r2Url}/${this.bucketName}/${fileName}`;
+      if (!this.client) {
+        return false;
+      }
 
-      const response = await this.client.fetch(url, {
-        method: "HEAD",
-      });
-
-      return response.ok;
+      return await this.client.exists(fileName);
     } catch (error) {
       logger.error(`检查文件失败: ${error}`);
       return false;
@@ -113,18 +99,12 @@ class R2Service {
    */
   async getFile(fileName: string): Promise<Buffer> {
     try {
-      const url = `${this.r2Url}/${this.bucketName}/${fileName}`;
-
-      const response = await this.client.fetch(url, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`获取文件失败: ${response.status} ${response.statusText} - ${errorText}`);
+      if (!this.client) {
+        throw new Error("R2 客户端未初始化");
       }
 
-      const arrayBuffer = await response.arrayBuffer();
+      const file = this.client.file(fileName);
+      const arrayBuffer = await file.arrayBuffer();
       return Buffer.from(arrayBuffer);
     } catch (error) {
       logger.error(`获取文件失败: ${error}`);
@@ -140,18 +120,17 @@ class R2Service {
    */
   async generatePresignedUploadUrl(fileName: string, expiresIn: number = 3600): Promise<string> {
     try {
-      const url = `${this.r2Url}/${this.bucketName}/${fileName}?X-Amz-Expires=${expiresIn}`;
+      if (!this.client) {
+        throw new Error("R2 客户端未初始化");
+      }
 
-      const signedRequest = await this.client.sign(
-        new Request(url, {
-          method: "PUT",
-        }),
-        {
-          aws: { signQuery: true },
-        }
-      );
+      const file = this.client.file(fileName);
+      const url = file.presign({
+        expiresIn,
+        method: "PUT",
+      });
 
-      return signedRequest.url.toString();
+      return url;
     } catch (error) {
       logger.error(`生成预签名URL失败: ${error}`);
       throw error;
@@ -166,18 +145,17 @@ class R2Service {
    */
   async generatePresignedDownloadUrl(fileName: string, expiresIn: number = 3600): Promise<string> {
     try {
-      const url = `${this.r2Url}/${this.bucketName}/${fileName}?X-Amz-Expires=${expiresIn}`;
+      if (!this.client) {
+        throw new Error("R2 客户端未初始化");
+      }
 
-      const signedRequest = await this.client.sign(
-        new Request(url, {
-          method: "GET",
-        }),
-        {
-          aws: { signQuery: true },
-        }
-      );
+      const file = this.client.file(fileName);
+      const url = file.presign({
+        expiresIn,
+        method: "GET",
+      });
 
-      return signedRequest.url.toString();
+      return url;
     } catch (error) {
       logger.error(`生成预签名URL失败: ${error}`);
       throw error;
@@ -192,23 +170,16 @@ class R2Service {
    */
   async listFiles(prefix: string = "", maxKeys: number = 1000): Promise<any> {
     try {
-      let url = `${this.r2Url}/${this.bucketName}?list-type=2&max-keys=${maxKeys}`;
-      if (prefix) {
-        url += `&prefix=${encodeURIComponent(prefix)}`;
+      if (!this.client) {
+        throw new Error("R2 客户端未初始化");
       }
 
-      const response = await this.client.fetch(url, {
-        method: "GET",
+      const result = await this.client.list({
+        prefix,
+        maxKeys,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`列出文件失败: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const xmlText = await response.text();
-      // 这里返回原始 XML，实际使用时可以解析成 JSON
-      return xmlText;
+      return result;
     } catch (error) {
       logger.error(`列出文件失败: ${error}`);
       throw error;
