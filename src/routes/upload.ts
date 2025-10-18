@@ -14,8 +14,11 @@ uploadRoutes.post("/upload/image", authMiddleware, uploadSingleImage, UploadCont
 // 上传多个图片 (需要登录)
 uploadRoutes.post("/upload/images", authMiddleware, uploadMultipleImages, UploadController.uploadMultipleImages);
 
-// 删除图片 (需要登录)
+// 删除单个图片 (需要登录)
 uploadRoutes.delete("/upload/image", authMiddleware, UploadController.deleteImage);
+
+// 批量删除图片 (需要登录)
+uploadRoutes.delete("/upload/images", authMiddleware, UploadController.deleteMultipleImages);
 
 // 生成预签名上传 URL (需要登录)
 uploadRoutes.post("/upload/presigned-url", authMiddleware, UploadController.generateUploadUrl);
