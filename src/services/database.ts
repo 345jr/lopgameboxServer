@@ -19,7 +19,7 @@ class DatabaseService {
 
   private initializeTables(): void {
     // 用户表
-    this.db.exec(`CREATE TABLE IF NOT EXISTS users (
+    this.db.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
@@ -28,14 +28,14 @@ class DatabaseService {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     // 版本信息表
-    this.db.exec(`CREATE TABLE IF NOT EXISTS versions (
+    this.db.run(`CREATE TABLE IF NOT EXISTS versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       version TEXT UNIQUE NOT NULL,
       release_date DATETIME DEFAULT CURRENT_TIMESTAMP,
       notes TEXT
     )`);
     // 图片信息表
-    this.db.exec(`CREATE TABLE IF NOT EXISTS images (
+    this.db.run(`CREATE TABLE IF NOT EXISTS images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       file_name TEXT NOT NULL,
@@ -48,8 +48,8 @@ class DatabaseService {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`);
     // 创建索引以提高查询性能
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_images_tag ON images(tag)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_images_tag ON images(tag)`);
   }
 
   public getDatabase(): Database {
