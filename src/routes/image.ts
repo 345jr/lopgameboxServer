@@ -20,8 +20,11 @@ imageRoutes.get("/images/:id", authMiddleware, ImageController.getImageById);
 // 更新图片信息 (需要登录)
 imageRoutes.put("/images/:id", authMiddleware, ImageController.updateImage);
 
-// 删除图片记录 (需要登录)
+// 删除单个图片记录 (需要登录)
 imageRoutes.delete("/images/:id", authMiddleware, ImageController.deleteImage);
+
+// 批量删除图片记录 (需要登录)
+imageRoutes.delete("/images", authMiddleware, ImageController.deleteMultipleImages);
 
 // 获取所有图片 (需要管理员权限)
 imageRoutes.get("/images", authMiddleware, adminMiddleware, ImageController.getAllImages);

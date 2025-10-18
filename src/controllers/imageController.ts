@@ -307,6 +307,95 @@ export class ImageController {
   }
 
   /**
+   * 批量删除图片记录
+   */
+  static deleteMultipleImages(req: Request, res: Response) {
+    try {
+      const currentUser = (req as any).user;
+      const { imageIds } = req.body;
+
+      if (!Array.isArray(imageIds) || imageIds.length === 0) {
+        return res.status(400).json({ error: "缺少图片ID参数或参数不是数组" });
+      }
+
+      if (imageIds.length > 100) {
+        return res.status(400).json({
+          error: "图片数量过多",
+          detail: "一次最多删除 100 个图片记录"
+        });
+      }
+
+      const deleteResults = [];
+      const deleteErrors = [];
+
+      // 逐个删除记录
+      for (const imageId of imageIds) {
+        try {
+          const id = Number(imageId);
+          if (!id || Number.isNaN(id)) {
+            deleteErrors.push({
+              imageId,
+              error: "无效的图片ID"
+            });
+            continue;
+          }
+
+          const image = db.prepare("SELECT * FROM images WHERE id = ?").get(id) as ImageRow | undefined;
+
+          if (!image) {
+            deleteErrors.push({
+              imageId: id,
+              error: "图片不存在"
+            });
+            continue;
+          }
+
+          // 检查权限：只能删除自己的图片，除非是管理员
+          if (image.user_id !== currentUser.id && currentUser.role !== 'admin') {
+            deleteErrors.push({
+              imageId: id,
+              error: "无权删除此图片"
+            });
+            continue;
+          }
+
+          // 删除数据库记录
+          db.prepare("DELETE FROM images WHERE id = ?").run(id);
+
+          deleteResults.push({
+            id,
+            fileName: image.file_name,
+            deletedAt: new Date().toISOString()
+          });
+        } catch (err) {
+          deleteErrors.push({
+            imageId,
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      }
+
+      logger.info(`用户 ${currentUser.username} 批量删除图片记录: 成功 ${deleteResults.length} 个, 失败 ${deleteErrors.length} 个`);
+
+      return res.json({
+        message: `成功删除 ${deleteResults.length} 条记录${deleteErrors.length > 0 ? `, ${deleteErrors.length} 条失败` : ''}`,
+        data: {
+          success: deleteResults,
+          errors: deleteErrors,
+          deletedAt: new Date().toISOString()
+        }
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`批量删除图片记录失败: ${errorMsg}`);
+      return res.status(500).json({ 
+        error: "批量删除图片记录失败", 
+        detail: errorMsg 
+      });
+    }
+  }
+
+  /**
    * 获取用户的标签列表
    */
   static getMyTags(req: Request, res: Response) {
