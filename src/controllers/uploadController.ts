@@ -251,7 +251,16 @@ export class UploadController {
         return res.status(404).json({ error: "文件不存在" });
       }
 
+      // 从数据库中获取图片记录
+      const image = db.prepare("SELECT * FROM images WHERE file_name = ?").get(fileName) as any;
+
+      // 删除 R2 存储的文件
       await r2Service.deleteFile(fileName);
+
+      // 删除数据库中的记录
+      if (image) {
+        db.prepare("DELETE FROM images WHERE file_name = ?").run(fileName);
+      }
 
       const currentUser = (req as any).user;
       logger.info(`用户 ${currentUser?.username || '未知'} 删除图片: ${fileName}`);
@@ -308,7 +317,12 @@ export class UploadController {
             continue;
           }
 
+          // 删除 R2 存储的文件
           await r2Service.deleteFile(fileName);
+
+          // 删除数据库中的记录
+          db.prepare("DELETE FROM images WHERE file_name = ?").run(fileName);
+
           deleteResults.push({
             fileName,
             deletedAt: new Date().toISOString()
