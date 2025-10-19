@@ -1,17 +1,9 @@
-/**
- * 文件上传配置管理
- * 支持动态配置文件大小限制和批量上传数量限制
- */
-
-interface UploadConfigType {
-  maxFileSize: number; // 单个文件最大大小（字节）
-  maxBatchCount: number; // 批量上传最大文件数
-}
+import type { UploadConfigType } from "../types/uploadImage";
 
 // 默认配置
 const DEFAULT_CONFIG: UploadConfigType = {
-  maxFileSize: 100 * 1024 * 1024, // 100MB
-  maxBatchCount: 100
+  maxFileSize: 10 * 1024 * 1024, // 10MB 
+  maxBatchCount: 10
 };
 
 // 当前配置（支持动态修改）

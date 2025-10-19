@@ -3,16 +3,9 @@ import { r2Service } from "../services/r2Service";
 import { db } from "../services/database";
 import logger from "../utils/logger";
 import { uploadConfigManager } from "../config/uploadConfig";
+import type { UploadValidationError } from "../types/uploadImage";
 import crypto from "crypto";
 import path from "path";
-
-// MIME 类型和大小限制已在 uploadMiddleware 中通过 multer 进行验证
-// 无需在控制器中重复验证
-
-interface UploadValidationError {
-  originalName: string;
-  error: string;
-}
 
 export class UploadController {
   /**
