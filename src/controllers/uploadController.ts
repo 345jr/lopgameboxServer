@@ -14,7 +14,7 @@ const ALLOWED_MIME_TYPES = [
   'image/svg+xml'
 ];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 interface UploadValidationError {
   originalName: string;
@@ -192,7 +192,7 @@ export class UploadController {
         return res.status(400).json({ error: "未上传文件" });
       }
 
-      if (files.length > 10) {
+      if (files.length > 100) {
         return res.status(400).json({
           error: "文件数量过多",
           detail: "一次最多上传 10 个文件"

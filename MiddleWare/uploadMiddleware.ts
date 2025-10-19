@@ -17,7 +17,7 @@ const allowedMimeTypes = [
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 100 * 1024 * 1024, // 100 MB
   },
   fileFilter: (req: any, file: any, cb: any) => {
     if (allowedMimeTypes.includes(file.mimetype)) {
@@ -31,8 +31,8 @@ const upload = multer({
 // 单文件上传中间件
 export const uploadSingleImage = upload.single('image');
 
-// 多文件上传中间件 (最多 10 个)
-export const uploadMultipleImages = upload.array('images', 10);
+// 多文件上传中间件 (最多 100 个)
+export const uploadMultipleImages = upload.array('images', 100);
 
 // 原有的原始数据上传中间件
 export const uploadRawData = multer().none();

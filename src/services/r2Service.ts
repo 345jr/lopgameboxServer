@@ -4,21 +4,14 @@ import logger from "../utils/logger";
 
 class R2Service {
   private client: S3Client | null;
-  // private bucketName: string;
-  // private publicUrl: string;
 
   constructor() {
     // 检查必需的环境变量
     if (!config.R2_ACCOUNT_ID || !config.R2_ACCESS_KEY_ID || !config.R2_SECRET_ACCESS_KEY || !config.R2_BUCKET_NAME) {
       logger.warn("R2 配置不完整，文件上传功能可能无法正常工作");
       this.client = null;
-      // this.bucketName = "";
-      // this.publicUrl = "";
       return;
     }
-
-    // this.bucketName = config.R2_BUCKET_NAME;
-    // this.publicUrl = config.R2_PUBLIC_URL || `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
     this.client = new S3Client({
       accessKeyId: config.R2_ACCESS_KEY_ID,
