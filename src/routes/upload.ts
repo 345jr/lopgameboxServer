@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { UploadController } from "../controllers/uploadController";
 import { authMiddleware } from "../../MiddleWare/authMiddleware";
+import { adminMiddleware } from "../../MiddleWare/adminMiddleware";
 import { uploadSingleImage, uploadMultipleImages } from "../../MiddleWare/uploadMiddleware";
 
 const uploadRoutes = Router();
@@ -22,5 +23,16 @@ uploadRoutes.delete("/upload/images", authMiddleware, UploadController.deleteMul
 
 // 生成预签名上传 URL (需要登录)
 uploadRoutes.post("/upload/presigned-url", authMiddleware, UploadController.generateUploadUrl);
+
+// ======== 配置管理接口 (需要管理员权限) ========
+
+// 获取上传配置 (需要管理员权限)
+uploadRoutes.get("/upload/config", authMiddleware, adminMiddleware, UploadController.getUploadConfig);
+
+// 更新上传配置 (需要管理员权限)
+uploadRoutes.put("/upload/config", authMiddleware, adminMiddleware, UploadController.updateUploadConfig);
+
+// 重置上传配置到默认值 (需要管理员权限)
+uploadRoutes.post("/upload/config/reset", authMiddleware, adminMiddleware, UploadController.resetUploadConfig);
 
 export default uploadRoutes;

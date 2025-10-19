@@ -1,4 +1,5 @@
 import multer from "multer";
+import { uploadConfigManager } from "../src/config/uploadConfig";
 
 // 使用内存存储，文件将被存储在 Buffer 中
 const storage = multer.memoryStorage();
@@ -13,26 +14,38 @@ const allowedMimeTypes = [
   'image/svg+xml'
 ];
 
-// 配置 multer
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100 MB
-  },
-  fileFilter: (req: any, file: any, cb: any) => {
-    if (allowedMimeTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(null, false);
+/**
+ * 创建动态 multer 配置
+ * 每次请求时都会获取最新的配置
+ */
+function createUploadMiddleware() {
+  return multer({
+    storage: storage,
+    limits: {
+      fileSize: uploadConfigManager.getMaxFileSize(),
+    },
+    fileFilter: (req: any, file: any, cb: any) => {
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+      }
     }
-  }
-});
+  });
+}
 
-// 单文件上传中间件
-export const uploadSingleImage = upload.single('image');
+// 单文件上传中间件（动态获取配置）
+export const uploadSingleImage = (req: any, res: any, next: any) => {
+  const upload = createUploadMiddleware();
+  upload.single('image')(req, res, next);
+};
 
-// 多文件上传中间件 (最多 100 个)
-export const uploadMultipleImages = upload.array('images', 100);
+// 多文件上传中间件（动态获取配置）
+export const uploadMultipleImages = (req: any, res: any, next: any) => {
+  const upload = createUploadMiddleware();
+  const maxCount = uploadConfigManager.getMaxBatchCount();
+  upload.array('images', maxCount)(req, res, next);
+};
 
 // 原有的原始数据上传中间件
 export const uploadRawData = multer().none();

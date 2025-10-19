@@ -2,19 +2,12 @@ import type { Request, Response } from "express";
 import { r2Service } from "../services/r2Service";
 import { db } from "../services/database";
 import logger from "../utils/logger";
+import { uploadConfigManager } from "../config/uploadConfig";
 import crypto from "crypto";
 import path from "path";
 
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml'
-];
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+// MIME 类型和大小限制已在 uploadMiddleware 中通过 multer 进行验证
+// 无需在控制器中重复验证
 
 interface UploadValidationError {
   originalName: string;
@@ -33,22 +26,11 @@ export class UploadController {
   }
 
   /**
-   * 验证文件
-   */
-  private static validateFile(file: Express.Multer.File): string | null {
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      return "不支持的文件类型";
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return "文件过大(超过10MB)";
-    }
-    return null;
-  }
-   /**
    * 获取 R2 服务状态
    */
   static getServiceStatus = (req: Request, res: Response) => {
     const isConfigured = r2Service.isConfigured();
+    const config = uploadConfigManager.getFormattedConfig();
 
     return res.json({
       message: "获取服务状态成功",
@@ -56,11 +38,12 @@ export class UploadController {
         configured: isConfigured,
         status: isConfigured ? "可用" : "未配置",
         supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
-        maxFileSize: "10MB",
-        maxBatchUpload: 10
+        maxFileSize: config.maxFileSize,
+        maxBatchUpload: config.maxBatchCount
       }
     });
   }
+
   /**
    * 检查 R2 配置
    */
@@ -83,16 +66,6 @@ export class UploadController {
     userId: number,
     tag?: string | null
   ): Promise<{ success: any; error: null } | { success: null; error: UploadValidationError }> {
-    const validationError = this.validateFile(file);
-    if (validationError) {
-      return {
-        success: null,
-        error: {
-          originalName: file.originalname,
-          error: validationError
-        }
-      };
-    }
 
     try {
       const fileName = this.generateFileName(file.originalname);
@@ -191,14 +164,6 @@ export class UploadController {
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "未上传文件" });
       }
-
-      if (files.length > 100) {
-        return res.status(400).json({
-          error: "文件数量过多",
-          detail: "一次最多上传 10 个文件"
-        });
-      }
-
       const currentUser = (req as any).user;
       const uploadResults = [];
       const uploadErrors = [];
@@ -295,13 +260,6 @@ export class UploadController {
         return res.status(400).json({ error: "缺少文件名参数或参数不是数组" });
       }
 
-      if (fileNames.length > 100) {
-        return res.status(400).json({
-          error: "文件数量过多",
-          detail: "一次最多删除 100 个文件"
-        });
-      }
-
       const deleteResults = [];
       const deleteErrors = [];
 
@@ -386,6 +344,127 @@ export class UploadController {
       logger.error(`生成上传URL失败: ${errorMsg}`);
       return res.status(500).json({
         error: "生成上传URL失败",
+        detail: errorMsg
+      });
+    }
+  }
+
+  /**
+   * 获取上传配置（管理员）
+   */
+  static getUploadConfig = (req: Request, res: Response) => {
+    try {
+      const currentUser = (req as any).user;
+
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ error: "权限不足，仅管理员可访问" });
+      }
+
+      const config = uploadConfigManager.getConfig();
+      const formatted = uploadConfigManager.getFormattedConfig();
+
+      return res.json({
+        message: "获取上传配置成功",
+        data: {
+          current: formatted,
+          bytes: config,
+          limits: {
+            maxFileSize: `${(config.maxFileSize / 1024 / 1024).toFixed(0)}MB`,
+            maxBatchCount: config.maxBatchCount
+          }
+        }
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`获取上传配置失败: ${errorMsg}`);
+      return res.status(500).json({
+        error: "获取上传配置失败",
+        detail: errorMsg
+      });
+    }
+  }
+
+  /**
+   * 更新上传配置（管理员）
+   */
+  static updateUploadConfig = (req: Request, res: Response) => {
+    try {
+      const currentUser = (req as any).user;
+
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ error: "权限不足，仅管理员可访问" });
+      }
+
+      const { maxFileSize, maxBatchCount } = req.body;
+
+      // 验证至少提供一个参数
+      if (maxFileSize === undefined && maxBatchCount === undefined) {
+        return res.status(400).json({
+          error: "缺少参数",
+          detail: "至少需要提供 maxFileSize 或 maxBatchCount"
+        });
+      }
+
+      // 构建更新对象
+      const updateData: any = {};
+      if (maxFileSize !== undefined) {
+        updateData.maxFileSize = maxFileSize;
+      }
+      if (maxBatchCount !== undefined) {
+        updateData.maxBatchCount = maxBatchCount;
+      }
+
+      // 更新配置
+      const newConfig = uploadConfigManager.updateConfig(updateData);
+      const formatted = uploadConfigManager.getFormattedConfig();
+
+      logger.info(`管理员 ${currentUser.username} 更新了上传配置: ${JSON.stringify(updateData)}`);
+
+      return res.json({
+        message: "上传配置更新成功",
+        data: {
+          updated: formatted,
+          bytes: newConfig
+        }
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`更新上传配置失败: ${errorMsg}`);
+      return res.status(400).json({
+        error: "更新上传配置失败",
+        detail: errorMsg
+      });
+    }
+  }
+
+  /**
+   * 重置上传配置到默认值（管理员）
+   */
+  static resetUploadConfig = (req: Request, res: Response) => {
+    try {
+      const currentUser = (req as any).user;
+
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ error: "权限不足，仅管理员可访问" });
+      }
+
+      const resetConfig = uploadConfigManager.resetConfig();
+      const formatted = uploadConfigManager.getFormattedConfig();
+
+      logger.info(`管理员 ${currentUser.username} 重置了上传配置`);
+
+      return res.json({
+        message: "上传配置已重置为默认值",
+        data: {
+          current: formatted,
+          bytes: resetConfig
+        }
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`重置上传配置失败: ${errorMsg}`);
+      return res.status(500).json({
+        error: "重置上传配置失败",
         detail: errorMsg
       });
     }
