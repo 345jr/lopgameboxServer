@@ -59,7 +59,7 @@ export class ImageController {
   static getMyImages(req: Request, res: Response) {
     try {
       const currentUser = (req as any).user;
-      const { tag, page = 1, limit = 20 } = req.query;
+      const { tag, page = 1, limit = 10 } = req.query;
 
       const offset = (Number(page) - 1) * Number(limit);
 
